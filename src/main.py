@@ -279,15 +279,22 @@ def main(argv: list[str] | None = None) -> int:
         sandbox = MicroVMSandbox()
         info = sandbox.status()
         print(f'MicroVM Sandbox Status')
-        print(f'  Available:    {info["available"]}')
         print(f'  Binary:       {info["binary"]}')
+        print(f'  Kernel:       {info["kernel"]}')
+        print(f'  Rootfs:       {info["rootfs"]}')
         print(f'  Mode:         {info["mode"]}')
         print(f'  Max parallel: {info["max_parallel"]}')
         print(f'  Memory/VM:    {info["memory_mb"]}MB')
         print(f'  VM timeout:   {info["vm_timeout"]}s')
         if not info['available']:
-            print(f'\nTo enable MicroVM isolation, install the binary:')
-            print(f'  cargo install --git https://github.com/quantumnic/microvm')
+            print(f'\nTo enable MicroVM isolation:')
+            print(f'  1. Install: cargo install --git https://github.com/quantumnic/microvm microvm')
+            print(f'  2. Place a RISC-V Linux kernel at ~/.forge/vm/Image')
+            print(f'  3. Optionally add rootfs at ~/.forge/vm/rootfs.img')
+        elif info['kernel'] == 'not configured':
+            print(f'\nmicrovm found but no kernel configured.')
+            print(f'  Place a RISC-V Linux kernel at ~/.forge/vm/Image')
+            print(f'  Or set FORGE_VM_KERNEL=/path/to/Image')
         return 0
     if args.command == 'forge-init-tasks':
         import shutil
