@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import subprocess
 import time
 from dataclasses import dataclass, field
@@ -10,6 +11,7 @@ from pathlib import Path
 from .scorer import TaskScorer, ScoreHistory
 from .task_runner import TaskRunner
 from .meta_agent import MetaAgent
+from .sandbox import MicroVMSandbox
 
 
 def _find_project_root() -> Path:
@@ -84,12 +86,16 @@ class ExperimentLoop:
     project_root: Path | None = None
     tasks_dir: str = "tasks"
     results_file: str = "results.tsv"
+    use_sandbox: bool = True
+    parallel: int = 10
+    memory_mb: int = 64
 
     # Internal collaborators — built lazily in ``_setup``.
     _runner: TaskRunner = field(init=False, repr=False, default=None)  # type: ignore[assignment]
     _scorer: TaskScorer = field(init=False, repr=False, default=None)  # type: ignore[assignment]
     _history: ScoreHistory = field(init=False, repr=False, default=None)  # type: ignore[assignment]
     _meta: MetaAgent = field(init=False, repr=False, default=None)  # type: ignore[assignment]
+    _sandbox: MicroVMSandbox | None = field(init=False, repr=False, default=None)
     _program_text: str = field(init=False, repr=False, default="")
 
     def _setup(self) -> None:
@@ -109,6 +115,25 @@ class ExperimentLoop:
             project_root=self.project_root,
             program_text=self._program_text,
         )
+        if self.use_sandbox:
+            self._sandbox = MicroVMSandbox(
+                max_parallel=self.parallel,
+                memory_mb=self.memory_mb,
+            )
+        else:
+            self._sandbox = None
+
+    # ------------------------------------------------------------------
+    # Internal helpers
+    # ------------------------------------------------------------------
+
+    def _run_all_tasks(self, tasks: list[dict]) -> list[dict]:
+        """Run *tasks* using sandbox (parallel) or sequential subprocess."""
+        if self._sandbox is not None:
+            return asyncio.run(
+                self._sandbox.run_tasks_parallel(tasks, runner=self._runner)
+            )
+        return [self._runner.run_task(t) for t in tasks]
 
     # ------------------------------------------------------------------
     # Public API
@@ -118,7 +143,7 @@ class ExperimentLoop:
         """Run all benchmark tasks once and return the raw results."""
         self._setup()
         tasks = self._runner.discover_tasks()
-        return [self._runner.run_task(t) for t in tasks]
+        return self._run_all_tasks(tasks)
 
     def show_scores(self) -> str:
         """Return a human-readable summary of the current score history."""
@@ -156,7 +181,7 @@ class ExperimentLoop:
             iteration += 1
 
             # --- baseline ---
-            baseline_results = [self._runner.run_task(t) for t in self._runner.discover_tasks()]
+            baseline_results = self._run_all_tasks(self._runner.discover_tasks())
             baseline_score = self._scorer.aggregate(baseline_results)
             baseline_passed = sum(1 for r in baseline_results if r["passed"])
             baseline_total = len(baseline_results)
@@ -193,7 +218,7 @@ class ExperimentLoop:
             self._meta.apply_changes(proposals)
             experiment_commit = _git_commit(f"experiment: iteration {iteration}")
 
-            experiment_results = [self._runner.run_task(t) for t in self._runner.discover_tasks()]
+            experiment_results = self._run_all_tasks(self._runner.discover_tasks())
             experiment_score = self._scorer.aggregate(experiment_results)
             experiment_passed = sum(1 for r in experiment_results if r["passed"])
             experiment_total = len(experiment_results)

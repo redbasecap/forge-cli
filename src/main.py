@@ -92,10 +92,16 @@ def build_parser() -> argparse.ArgumentParser:
     # -- Forge self-improvement commands ------------------------------------
     improve_parser = subparsers.add_parser('forge-improve', help='start the self-improvement experiment loop')
     improve_parser.add_argument('--max-iterations', type=int, default=None, help='maximum number of iterations (default: run until converged)')
+    improve_parser.add_argument('--parallel', type=int, default=10, help='number of parallel VMs/tasks (default: 10)')
+    improve_parser.add_argument('--no-sandbox', action='store_true', help='disable MicroVM sandbox, use plain subprocesses')
 
-    subparsers.add_parser('forge-bench', help='run the benchmark task suite once and print results')
+    bench_parser = subparsers.add_parser('forge-bench', help='run the benchmark task suite once and print results')
+    bench_parser.add_argument('--parallel', type=int, default=10, help='number of parallel VMs/tasks (default: 10)')
+    bench_parser.add_argument('--no-sandbox', action='store_true', help='disable MicroVM sandbox, use plain subprocesses')
+
     subparsers.add_parser('forge-score', help='show the current experiment score history')
     subparsers.add_parser('forge-experiment-log', help='print the raw results.tsv experiment log')
+    subparsers.add_parser('forge-sandbox-status', help='check MicroVM sandbox availability and configuration')
 
     init_tasks_parser = subparsers.add_parser('forge-init-tasks', help='scaffold a tasks/ directory with an example task')
     init_tasks_parser.add_argument('--force', action='store_true', help='overwrite existing example task')
@@ -221,7 +227,12 @@ def main(argv: list[str] | None = None) -> int:
     # -- Forge self-improvement handlers ------------------------------------
     if args.command == 'forge-improve':
         from .self_improve import ExperimentLoop
-        loop = ExperimentLoop()
+        loop = ExperimentLoop(
+            use_sandbox=not args.no_sandbox,
+            parallel=args.parallel,
+        )
+        mode = 'subprocess' if args.no_sandbox else ('microvm' if loop._sandbox and loop._sandbox.is_available() else 'subprocess (fallback)')
+        print(f'Execution mode: {mode}  parallel={args.parallel}')
         results = loop.run(max_iterations=args.max_iterations)
         for r in results:
             status = 'KEPT' if r.kept else 'DISCARDED'
@@ -233,7 +244,12 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == 'forge-bench':
         from .self_improve import ExperimentLoop
-        loop = ExperimentLoop()
+        loop = ExperimentLoop(
+            use_sandbox=not args.no_sandbox,
+            parallel=args.parallel,
+        )
+        mode = 'subprocess' if args.no_sandbox else ('microvm' if loop._sandbox and loop._sandbox.is_available() else 'subprocess (fallback)')
+        print(f'Execution mode: {mode}  parallel={args.parallel}')
         results = loop.run_benchmark()
         for r in results:
             status = 'PASS' if r['passed'] else 'FAIL'
@@ -257,6 +273,21 @@ def main(argv: list[str] | None = None) -> int:
             print(loop._history.results_path.read_text())
         else:
             print('No experiment log found. Run forge-improve first.')
+        return 0
+    if args.command == 'forge-sandbox-status':
+        from .self_improve import MicroVMSandbox
+        sandbox = MicroVMSandbox()
+        info = sandbox.status()
+        print(f'MicroVM Sandbox Status')
+        print(f'  Available:    {info["available"]}')
+        print(f'  Binary:       {info["binary"]}')
+        print(f'  Mode:         {info["mode"]}')
+        print(f'  Max parallel: {info["max_parallel"]}')
+        print(f'  Memory/VM:    {info["memory_mb"]}MB')
+        print(f'  VM timeout:   {info["vm_timeout"]}s')
+        if not info['available']:
+            print(f'\nTo enable MicroVM isolation, install the binary:')
+            print(f'  cargo install --git https://github.com/quantumnic/microvm')
         return 0
     if args.command == 'forge-init-tasks':
         import shutil

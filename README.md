@@ -93,6 +93,49 @@ python3 -m src.main forge-experiment-log
                               next iteration
 ```
 
+## Sandboxed Execution
+
+Forge can run benchmark tasks inside lightweight **MicroVM** instances for full isolation. This lets you run 10+ agents in parallel without interference — each task gets its own RISC-V VM with isolated memory, filesystem, and execution.
+
+### Install MicroVM
+
+```bash
+cargo install --git https://github.com/quantumnic/microvm
+```
+
+Binary size is ~2MB. No Docker required.
+
+### Parallel execution
+
+```bash
+# Run benchmarks with 10 parallel VMs (default)
+python3 -m src.main forge-bench --parallel 10
+
+# Self-improvement loop with parallel execution
+python3 -m src.main forge-improve --parallel 10
+
+# Check sandbox status
+python3 -m src.main forge-sandbox-status
+```
+
+### Graceful fallback
+
+If `microvm` is not installed, Forge automatically falls back to async subprocess execution. All commands work the same — you just lose VM-level isolation.
+
+```bash
+# Disable sandbox explicitly
+python3 -m src.main forge-bench --no-sandbox
+```
+
+### Configuration
+
+| Parameter       | Default | Description                    |
+|----------------|---------|--------------------------------|
+| `--parallel N` | 10      | Max concurrent VMs             |
+| `--no-sandbox` | false   | Disable MicroVM, use subprocess |
+| Memory per VM  | 64MB    | Configurable in code           |
+| VM timeout     | 120s    | Per-task timeout               |
+
 ## Task Format
 
 Tasks live in `tasks/` and follow this structure:
@@ -137,6 +180,7 @@ forge/
 ├── src/                     # Python harness layer
 │   ├── self_improve/        # Self-improvement engine
 │   │   ├── engine.py        # ExperimentLoop (hill-climbing)
+│   │   ├── sandbox.py       # MicroVM sandbox (parallel isolation)
 │   │   ├── scorer.py        # Score aggregation + keep/discard
 │   │   ├── task_runner.py   # Task discovery + execution
 │   │   └── meta_agent.py    # Failure diagnosis + proposals
@@ -179,6 +223,7 @@ Config files: `~/.forge/settings.json` or `.forge.json` in project root.
 | `forge-bench`               | Run benchmark suite once             |
 | `forge-score`               | Show current scores                  |
 | `forge-experiment-log`      | Show experiment history              |
+| `forge-sandbox-status`      | Check MicroVM availability           |
 | `forge-init-tasks`          | Scaffold tasks/ with example         |
 | `summary`                   | Render workspace summary             |
 | `manifest`                  | Print workspace manifest             |

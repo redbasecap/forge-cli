@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import subprocess
 import time
 from dataclasses import dataclass, field
@@ -159,3 +160,56 @@ class TaskRunner:
             "output": output.strip(),
             "duration": round(elapsed, 3),
         }
+
+    async def run_task_async(self, task: dict) -> dict:
+        """Async version of :meth:`run_task` using ``asyncio`` subprocesses."""
+        task_dir = Path(task["path"])
+        test_script = task_dir / "tests" / "test.sh"
+        timeout = task.get("timeout", self.default_timeout)
+
+        if not test_script.exists():
+            return {
+                "name": task["name"],
+                "passed": False,
+                "score": 0.0,
+                "output": f"test script not found: {test_script}",
+                "duration": 0.0,
+            }
+
+        start = time.monotonic()
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                "bash", str(test_script),
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                cwd=str(task_dir),
+            )
+            stdout, stderr = await asyncio.wait_for(
+                proc.communicate(), timeout=timeout
+            )
+            elapsed = time.monotonic() - start
+            passed = proc.returncode == 0
+            output = (stdout or b"").decode() + (stderr or b"").decode()
+            score = 1.0 if passed else 0.0
+        except asyncio.TimeoutError:
+            elapsed = time.monotonic() - start
+            passed = False
+            output = f"task timed out after {timeout}s"
+            score = 0.0
+        except Exception as exc:
+            elapsed = time.monotonic() - start
+            passed = False
+            output = f"unexpected error: {exc}"
+            score = 0.0
+
+        return {
+            "name": task["name"],
+            "passed": passed,
+            "score": score,
+            "output": output.strip() if isinstance(output, str) else output,
+            "duration": round(elapsed, 3),
+        }
+
+    async def run_tasks_async(self, tasks: list[dict]) -> list[dict]:
+        """Run all *tasks* concurrently and return results in order."""
+        return list(await asyncio.gather(*(self.run_task_async(t) for t in tasks)))
