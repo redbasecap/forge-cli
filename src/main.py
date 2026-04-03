@@ -19,7 +19,7 @@ from .tools import execute_tool, get_tool, get_tools, render_tool_index
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description='Python porting workspace for the Claude Code rewrite effort')
+    parser = argparse.ArgumentParser(description='Python porting workspace for the Forge CLI effort')
     subparsers = parser.add_subparsers(dest='command', required=True)
     subparsers.add_parser('summary', help='render a Markdown summary of the Python porting workspace')
     subparsers.add_parser('manifest', help='print the current Python workspace manifest')
@@ -88,6 +88,18 @@ def build_parser() -> argparse.ArgumentParser:
     exec_tool_parser = subparsers.add_parser('exec-tool', help='execute a mirrored tool shim by exact name')
     exec_tool_parser.add_argument('name')
     exec_tool_parser.add_argument('payload')
+
+    # -- Forge self-improvement commands ------------------------------------
+    improve_parser = subparsers.add_parser('forge-improve', help='start the self-improvement experiment loop')
+    improve_parser.add_argument('--max-iterations', type=int, default=None, help='maximum number of iterations (default: run until converged)')
+
+    subparsers.add_parser('forge-bench', help='run the benchmark task suite once and print results')
+    subparsers.add_parser('forge-score', help='show the current experiment score history')
+    subparsers.add_parser('forge-experiment-log', help='print the raw results.tsv experiment log')
+
+    init_tasks_parser = subparsers.add_parser('forge-init-tasks', help='scaffold a tasks/ directory with an example task')
+    init_tasks_parser.add_argument('--force', action='store_true', help='overwrite existing example task')
+
     return parser
 
 
@@ -205,6 +217,84 @@ def main(argv: list[str] | None = None) -> int:
         result = execute_tool(args.name, args.payload)
         print(result.message)
         return 0 if result.handled else 1
+
+    # -- Forge self-improvement handlers ------------------------------------
+    if args.command == 'forge-improve':
+        from .self_improve import ExperimentLoop
+        loop = ExperimentLoop()
+        results = loop.run(max_iterations=args.max_iterations)
+        for r in results:
+            status = 'KEPT' if r.kept else 'DISCARDED'
+            print(f'[{status}] iteration {r.iteration}: avg_score={r.avg_score:.3f}  '
+                  f'passed={r.passed}/{r.total}  commit={r.commit}')
+            print(f'         {r.description}')
+        if not results:
+            print('No iterations executed.')
+        return 0
+    if args.command == 'forge-bench':
+        from .self_improve import ExperimentLoop
+        loop = ExperimentLoop()
+        results = loop.run_benchmark()
+        for r in results:
+            status = 'PASS' if r['passed'] else 'FAIL'
+            print(f'[{status}] {r["name"]}  score={r["score"]:.2f}  duration={r["duration"]:.1f}s')
+            if not r['passed']:
+                print(f'       {r["output"][:200]}')
+        total = len(results)
+        passed = sum(1 for r in results if r['passed'])
+        print(f'\n{passed}/{total} tasks passed')
+        return 0
+    if args.command == 'forge-score':
+        from .self_improve import ExperimentLoop
+        loop = ExperimentLoop()
+        print(loop.show_scores())
+        return 0
+    if args.command == 'forge-experiment-log':
+        from .self_improve import ExperimentLoop
+        loop = ExperimentLoop()
+        loop._setup()
+        if loop._history.results_path.exists():
+            print(loop._history.results_path.read_text())
+        else:
+            print('No experiment log found. Run forge-improve first.')
+        return 0
+    if args.command == 'forge-init-tasks':
+        import shutil
+        from pathlib import Path
+        project_root = Path(__file__).resolve().parent.parent
+        tasks_dir = project_root / 'tasks' / 'example-task'
+        if tasks_dir.exists() and not args.force:
+            print(f'Example task already exists at {tasks_dir}. Use --force to overwrite.')
+            return 1
+        tasks_dir.mkdir(parents=True, exist_ok=True)
+        (tasks_dir / 'task.toml').write_text(
+            '[task]\nname = "example-task"\n'
+            'description = "Write a function that returns the nth Fibonacci number"\n'
+            'timeout = 60\n'
+        )
+        (tasks_dir / 'instruction.md').write_text(
+            '# Task: Fibonacci Function\n\n'
+            'Write a Python file `solution.py` that contains a function `fibonacci(n)` '
+            'which returns the nth Fibonacci number (0-indexed).\n\n'
+            '- fibonacci(0) = 0\n- fibonacci(1) = 1\n- fibonacci(10) = 55\n\n'
+            'The function should handle n >= 0.\n'
+        )
+        tests_dir = tasks_dir / 'tests'
+        tests_dir.mkdir(parents=True, exist_ok=True)
+        test_script = tests_dir / 'test.sh'
+        test_script.write_text(
+            '#!/usr/bin/env bash\nset -e\ncd "$(dirname "$0")/.."\n'
+            'python3 -c "\nfrom solution import fibonacci\n'
+            "assert fibonacci(0) == 0, f'fibonacci(0) = {fibonacci(0)}'\n"
+            "assert fibonacci(1) == 1, f'fibonacci(1) = {fibonacci(1)}'\n"
+            "assert fibonacci(10) == 55, f'fibonacci(10) = {fibonacci(10)}'\n"
+            "assert fibonacci(20) == 6765, f'fibonacci(20) = {fibonacci(20)}'\n"
+            "print('All tests passed!')\n\"\n"
+        )
+        test_script.chmod(0o755)
+        print(f'Scaffolded example task at {tasks_dir}')
+        return 0
+
     parser.error(f'unknown command: {args.command}')
     return 2
 

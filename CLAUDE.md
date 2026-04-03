@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Forge CLI (claude.ai/code) when working with code in this repository.
 
 ## Detected stack
 - Languages: Rust.
@@ -17,5 +17,5 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Working agreement
 - Prefer small, reviewable changes and keep generated bootstrap files aligned with actual repo workflows.
-- Keep shared defaults in `.claude.json`; reserve `.claude/settings.local.json` for machine-local overrides.
+- Keep shared defaults in `.forge.json`; reserve `.forge/settings.local.json` for machine-local overrides.
 - Do not overwrite existing `CLAUDE.md` content automatically; update it intentionally when repo workflows change.

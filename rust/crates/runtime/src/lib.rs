@@ -30,7 +30,7 @@ pub use config::{
     McpServerConfig, McpStdioServerConfig, McpTransport, McpWebSocketServerConfig, OAuthConfig,
     ResolvedPermissionMode, RuntimeConfig, RuntimeFeatureConfig, RuntimeHookConfig,
     RuntimePermissionRuleConfig, RuntimePluginConfig, ScopedMcpServerConfig,
-    CLAW_SETTINGS_SCHEMA_NAME,
+    FORGE_SETTINGS_SCHEMA_NAME,
 };
 pub use conversation::{
     auto_compaction_threshold_from_env, ApiClient, ApiRequest, AssistantEvent, AutoCompactionEvent,

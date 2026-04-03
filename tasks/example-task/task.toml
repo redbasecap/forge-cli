@@ -1,0 +1,4 @@
+[task]
+name = "example-task"
+description = "Write a function that returns the nth Fibonacci number"
+timeout = 60

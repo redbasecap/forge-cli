@@ -88,13 +88,13 @@ type AllowedToolSet = BTreeSet<String>;
 fn main() {
     if let Err(error) = run() {
         let message = error.to_string();
-        if message.contains("`claw --help`") {
+        if message.contains("`forge --help`") {
             eprintln!("error: {message}");
         } else {
             eprintln!(
                 "error: {message}
 
-Run `claw --help` for usage."
+Run `forge --help` for usage."
             );
         }
         std::process::exit(1);
@@ -260,7 +260,7 @@ fn parse_args(args: &[String]) -> Result<CliAction, String> {
                 index += 1;
             }
             "-p" => {
-                // Claw Code compat: -p "prompt" = one-shot prompt
+                // Forge compat: -p "prompt" = one-shot prompt
                 let prompt = args[index + 1..].join(" ");
                 if prompt.trim().is_empty() {
                     return Err("-p requires a prompt string".to_string());
@@ -274,7 +274,7 @@ fn parse_args(args: &[String]) -> Result<CliAction, String> {
                 });
             }
             "--print" => {
-                // Claw Code compat: --print makes output non-interactive
+                // Forge compat: --print makes output non-interactive
                 output_format = CliOutputFormat::Text;
                 index += 1;
             }
@@ -414,11 +414,11 @@ fn bare_slash_command_guidance(command_name: &str) -> Option<String> {
         .find(|spec| spec.name == command_name)?;
     let guidance = if slash_command.resume_supported {
         format!(
-            "`claw {command_name}` is a slash command. Use `claw --resume SESSION.jsonl /{command_name}` or start `claw` and run `/{command_name}`."
+            "`forge {command_name}` is a slash command. Use `forge --resume SESSION.jsonl /{command_name}` or start `forge` and run `/{command_name}`."
         )
     } else {
         format!(
-            "`claw {command_name}` is a slash command. Start `claw` and run `/{command_name}` inside the REPL."
+            "`forge {command_name}` is a slash command. Start `forge` and run `/{command_name}` inside the REPL."
         )
     };
     Some(guidance)
@@ -440,7 +440,7 @@ fn parse_direct_slash_cli_action(rest: &[String]) -> Result<CliAction, String> {
         Ok(Some(command)) => Err({
             let _ = command;
             format!(
-                "slash command {command_name} is interactive-only. Start `claw` and run it there, or use `claw --resume SESSION.jsonl {command_name}` / `claw --resume {latest} {command_name}` when the command is marked [resume] in /help.",
+                "slash command {command_name} is interactive-only. Start `forge` and run it there, or use `forge --resume SESSION.jsonl {command_name}` / `forge --resume {latest} {command_name}` when the command is marked [resume] in /help.",
                 command_name = rest[0],
                 latest = LATEST_SESSION_REFERENCE,
             )
@@ -457,7 +457,7 @@ fn format_unknown_option(option: &str) -> String {
         message.push_str(suggestion);
         message.push('?');
     }
-    message.push_str("\nRun `claw --help` for usage.");
+    message.push_str("\nRun `forge --help` for usage.");
     message
 }
 
@@ -468,7 +468,7 @@ fn format_unknown_direct_slash_command(name: &str) -> String {
         message.push('\n');
         message.push_str(&suggestions);
     }
-    message.push_str("\nRun `claw --help` for CLI usage, or start `claw` and use /help.");
+    message.push_str("\nRun `forge --help` for CLI usage, or start `forge` and use /help.");
     message
 }
 
@@ -603,7 +603,7 @@ fn permission_mode_from_label(mode: &str) -> PermissionMode {
 }
 
 fn default_permission_mode() -> PermissionMode {
-    env::var("RUSTY_CLAUDE_PERMISSION_MODE")
+    env::var("FORGE_PERMISSION_MODE")
         .ok()
         .as_deref()
         .and_then(normalize_permission_mode)
@@ -1123,7 +1123,7 @@ fn render_resume_usage() -> String {
     format!(
         "Resume
   Usage            /resume <session-path|session-id|{LATEST_SESSION_REFERENCE}>
-  Auto-save        .claw/sessions/<session-id>.{PRIMARY_SESSION_EXTENSION}
+  Auto-save        .forge/sessions/<session-id>.{PRIMARY_SESSION_EXTENSION}
   Tip              use /session list to inspect saved sessions"
     )
 }
@@ -2397,7 +2397,7 @@ impl LiveCli {
 
 fn sessions_dir() -> Result<PathBuf, Box<dyn std::error::Error>> {
     let cwd = env::current_dir()?;
-    let path = cwd.join(".claw").join("sessions");
+    let path = cwd.join(".forge").join("sessions");
     fs::create_dir_all(&path)?;
     Ok(path)
 }
@@ -2532,13 +2532,13 @@ fn latest_managed_session() -> Result<ManagedSessionSummary, Box<dyn std::error:
 
 fn format_missing_session_reference(reference: &str) -> String {
     format!(
-        "session not found: {reference}\nHint: managed sessions live in .claw/sessions/. Try `{LATEST_SESSION_REFERENCE}` for the most recent session or `/session list` in the REPL."
+        "session not found: {reference}\nHint: managed sessions live in .forge/sessions/. Try `{LATEST_SESSION_REFERENCE}` for the most recent session or `/session list` in the REPL."
     )
 }
 
 fn format_no_managed_sessions() -> String {
     format!(
-        "no managed sessions found in .claw/sessions/\nStart `claw` to create a session, then rerun with `--resume {LATEST_SESSION_REFERENCE}`."
+        "no managed sessions found in .forge/sessions/\nStart `forge` to create a session, then rerun with `--resume {LATEST_SESSION_REFERENCE}`."
     )
 }
 
@@ -2608,7 +2608,7 @@ fn render_repl_help() -> String {
         "  Tab                  Complete commands, modes, and recent sessions".to_string(),
         "  Ctrl-C               Clear input (or exit on empty prompt)".to_string(),
         "  Shift+Enter/Ctrl+J   Insert a newline".to_string(),
-        "  Auto-save            .claw/sessions/<session-id>.jsonl".to_string(),
+        "  Auto-save            .forge/sessions/<session-id>.jsonl".to_string(),
         "  Resume latest        /resume latest".to_string(),
         "  Browse sessions      /session list".to_string(),
         String::new(),
@@ -3255,7 +3255,7 @@ fn render_version_report() -> String {
     let git_sha = GIT_SHA.unwrap_or("unknown");
     let target = BUILD_TARGET.unwrap_or("unknown");
     format!(
-        "Claw Code\n  Version          {VERSION}\n  Git SHA          {git_sha}\n  Target           {target}\n  Build date       {DEFAULT_DATE}"
+        "Forge\n  Version          {VERSION}\n  Git SHA          {git_sha}\n  Target           {target}\n  Build date       {DEFAULT_DATE}"
     )
 }
 
@@ -4867,51 +4867,51 @@ fn convert_messages(messages: &[ConversationMessage]) -> Vec<InputMessage> {
 
 #[allow(clippy::too_many_lines)]
 fn print_help_to(out: &mut impl Write) -> io::Result<()> {
-    writeln!(out, "claw v{VERSION}")?;
+    writeln!(out, "forge v{VERSION}")?;
     writeln!(out)?;
     writeln!(out, "Usage:")?;
     writeln!(
         out,
-        "  claw [--model MODEL] [--allowedTools TOOL[,TOOL...]]"
+        "  forge [--model MODEL] [--allowedTools TOOL[,TOOL...]]"
     )?;
     writeln!(out, "      Start the interactive REPL")?;
     writeln!(
         out,
-        "  claw [--model MODEL] [--output-format text|json] prompt TEXT"
+        "  forge [--model MODEL] [--output-format text|json] prompt TEXT"
     )?;
     writeln!(out, "      Send one prompt and exit")?;
     writeln!(
         out,
-        "  claw [--model MODEL] [--output-format text|json] TEXT"
+        "  forge [--model MODEL] [--output-format text|json] TEXT"
     )?;
     writeln!(out, "      Shorthand non-interactive prompt mode")?;
     writeln!(
         out,
-        "  claw --resume [SESSION.jsonl|session-id|latest] [/status] [/compact] [...]"
+        "  forge --resume [SESSION.jsonl|session-id|latest] [/status] [/compact] [...]"
     )?;
     writeln!(
         out,
         "      Inspect or maintain a saved session without entering the REPL"
     )?;
-    writeln!(out, "  claw help")?;
+    writeln!(out, "  forge help")?;
     writeln!(out, "      Alias for --help")?;
-    writeln!(out, "  claw version")?;
+    writeln!(out, "  forge version")?;
     writeln!(out, "      Alias for --version")?;
-    writeln!(out, "  claw status")?;
+    writeln!(out, "  forge status")?;
     writeln!(
         out,
         "      Show the current local workspace status snapshot"
     )?;
-    writeln!(out, "  claw sandbox")?;
+    writeln!(out, "  forge sandbox")?;
     writeln!(out, "      Show the current sandbox isolation snapshot")?;
-    writeln!(out, "  claw dump-manifests")?;
-    writeln!(out, "  claw bootstrap-plan")?;
-    writeln!(out, "  claw agents")?;
-    writeln!(out, "  claw skills")?;
-    writeln!(out, "  claw system-prompt [--cwd PATH] [--date YYYY-MM-DD]")?;
-    writeln!(out, "  claw login")?;
-    writeln!(out, "  claw logout")?;
-    writeln!(out, "  claw init")?;
+    writeln!(out, "  forge dump-manifests")?;
+    writeln!(out, "  forge bootstrap-plan")?;
+    writeln!(out, "  forge agents")?;
+    writeln!(out, "  forge skills")?;
+    writeln!(out, "  forge system-prompt [--cwd PATH] [--date YYYY-MM-DD]")?;
+    writeln!(out, "  forge login")?;
+    writeln!(out, "  forge logout")?;
+    writeln!(out, "  forge init")?;
     writeln!(out)?;
     writeln!(out, "Flags:")?;
     writeln!(
@@ -4952,7 +4952,7 @@ fn print_help_to(out: &mut impl Write) -> io::Result<()> {
     writeln!(out, "Session shortcuts:")?;
     writeln!(
         out,
-        "  REPL turns auto-save to .claw/sessions/<session-id>.{PRIMARY_SESSION_EXTENSION}"
+        "  REPL turns auto-save to .forge/sessions/<session-id>.{PRIMARY_SESSION_EXTENSION}"
     )?;
     writeln!(
         out,
@@ -4963,24 +4963,24 @@ fn print_help_to(out: &mut impl Write) -> io::Result<()> {
         "  Use /session list in the REPL to browse managed sessions"
     )?;
     writeln!(out, "Examples:")?;
-    writeln!(out, "  claw --model claude-opus \"summarize this repo\"")?;
+    writeln!(out, "  forge --model claude-opus \"summarize this repo\"")?;
     writeln!(
         out,
-        "  claw --output-format json prompt \"explain src/main.rs\""
+        "  forge --output-format json prompt \"explain src/main.rs\""
     )?;
     writeln!(
         out,
-        "  claw --allowedTools read,glob \"summarize Cargo.toml\""
+        "  forge --allowedTools read,glob \"summarize Cargo.toml\""
     )?;
-    writeln!(out, "  claw --resume {LATEST_SESSION_REFERENCE}")?;
+    writeln!(out, "  forge --resume {LATEST_SESSION_REFERENCE}")?;
     writeln!(
         out,
-        "  claw --resume {LATEST_SESSION_REFERENCE} /status /diff /export notes.txt"
+        "  forge --resume {LATEST_SESSION_REFERENCE} /status /diff /export notes.txt"
     )?;
-    writeln!(out, "  claw agents")?;
-    writeln!(out, "  claw /skills")?;
-    writeln!(out, "  claw login")?;
-    writeln!(out, "  claw init")?;
+    writeln!(out, "  forge agents")?;
+    writeln!(out, "  forge /skills")?;
+    writeln!(out, "  forge login")?;
+    writeln!(out, "  forge init")?;
     Ok(())
 }
 
@@ -5054,7 +5054,7 @@ mod tests {
             .duration_since(UNIX_EPOCH)
             .expect("time should be after epoch")
             .as_nanos();
-        std::env::temp_dir().join(format!("rusty-claude-cli-{nanos}"))
+        std::env::temp_dir().join(format!("forge-cli-{nanos}"))
     }
 
     fn git(args: &[&str], cwd: &Path) {
@@ -5386,7 +5386,7 @@ mod tests {
         let error = parse_args(&["/status".to_string()])
             .expect_err("/status should remain REPL-only when invoked directly");
         assert!(error.contains("interactive-only"));
-        assert!(error.contains("claw --resume SESSION.jsonl /status"));
+        assert!(error.contains("forge --resume SESSION.jsonl /status"));
     }
 
     #[test]
@@ -5476,7 +5476,7 @@ mod tests {
         let error = parse_args(&["--resum".to_string()]).expect_err("unknown option should fail");
         assert!(error.contains("unknown option: --resum"));
         assert!(error.contains("Did you mean --resume?"));
-        assert!(error.contains("claw --help"));
+        assert!(error.contains("forge --help"));
     }
 
     #[test]
@@ -5591,7 +5591,7 @@ mod tests {
         assert!(help.contains("/agents"));
         assert!(help.contains("/skills"));
         assert!(help.contains("/exit"));
-        assert!(help.contains("Auto-save            .claw/sessions/<session-id>.jsonl"));
+        assert!(help.contains("Auto-save            .forge/sessions/<session-id>.jsonl"));
         assert!(help.contains("Resume latest        /resume latest"));
     }
 
@@ -5711,14 +5711,14 @@ mod tests {
         let mut help = Vec::new();
         print_help_to(&mut help).expect("help should render");
         let help = String::from_utf8(help).expect("help should be utf8");
-        assert!(help.contains("claw help"));
-        assert!(help.contains("claw version"));
-        assert!(help.contains("claw status"));
-        assert!(help.contains("claw sandbox"));
-        assert!(help.contains("claw init"));
-        assert!(help.contains("claw agents"));
-        assert!(help.contains("claw skills"));
-        assert!(help.contains("claw /skills"));
+        assert!(help.contains("forge help"));
+        assert!(help.contains("forge version"));
+        assert!(help.contains("forge status"));
+        assert!(help.contains("forge sandbox"));
+        assert!(help.contains("forge init"));
+        assert!(help.contains("forge agents"));
+        assert!(help.contains("forge skills"));
+        assert!(help.contains("forge /skills"));
     }
 
     #[test]
@@ -5947,7 +5947,7 @@ UU conflicted.rs",
         fs::create_dir_all(&root).expect("root dir");
         git(&["init", "--quiet"], &root);
         git(&["config", "user.email", "tests@example.com"], &root);
-        git(&["config", "user.name", "Rusty Claude Tests"], &root);
+        git(&["config", "user.name", "Forge Tests"], &root);
         fs::write(root.join("tracked.txt"), "hello\n").expect("write file");
         git(&["add", "tracked.txt"], &root);
         git(&["commit", "-m", "init", "--quiet"], &root);
@@ -5967,7 +5967,7 @@ UU conflicted.rs",
         fs::create_dir_all(&root).expect("root dir");
         git(&["init", "--quiet"], &root);
         git(&["config", "user.email", "tests@example.com"], &root);
-        git(&["config", "user.name", "Rusty Claude Tests"], &root);
+        git(&["config", "user.name", "Forge Tests"], &root);
         fs::write(root.join("tracked.txt"), "hello\n").expect("write file");
         git(&["add", "tracked.txt"], &root);
         git(&["commit", "-m", "init", "--quiet"], &root);
@@ -5994,7 +5994,7 @@ UU conflicted.rs",
         fs::create_dir_all(&root).expect("root dir");
         git(&["init", "--quiet"], &root);
         git(&["config", "user.email", "tests@example.com"], &root);
-        git(&["config", "user.name", "Rusty Claude Tests"], &root);
+        git(&["config", "user.name", "Forge Tests"], &root);
         fs::write(root.join(".gitignore"), ".omx/\nignored.txt\n").expect("write gitignore");
         fs::write(root.join("tracked.txt"), "hello\n").expect("write tracked");
         git(&["add", ".gitignore", "tracked.txt"], &root);
@@ -6021,7 +6021,7 @@ UU conflicted.rs",
         fs::create_dir_all(&root).expect("root dir");
         git(&["init", "--quiet"], &root);
         git(&["config", "user.email", "tests@example.com"], &root);
-        git(&["config", "user.name", "Rusty Claude Tests"], &root);
+        git(&["config", "user.name", "Forge Tests"], &root);
         fs::write(root.join("tracked.txt"), "hello\n").expect("write tracked");
         git(&["add", "tracked.txt"], &root);
         git(&["commit", "-m", "init", "--quiet"], &root);
@@ -6118,10 +6118,10 @@ UU conflicted.rs",
         let mut help = Vec::new();
         print_help_to(&mut help).expect("help should render");
         let help = String::from_utf8(help).expect("help should be utf8");
-        assert!(help.contains("claw --resume [SESSION.jsonl|session-id|latest]"));
+        assert!(help.contains("forge --resume [SESSION.jsonl|session-id|latest]"));
         assert!(help.contains("Use `latest` with --resume, /resume, or /session switch"));
-        assert!(help.contains("claw --resume latest"));
-        assert!(help.contains("claw --resume latest /status /diff /export notes.txt"));
+        assert!(help.contains("forge --resume latest"));
+        assert!(help.contains("forge --resume latest /status /diff /export notes.txt"));
     }
 
     #[test]
@@ -6135,7 +6135,7 @@ UU conflicted.rs",
         let handle = create_managed_session_handle("session-alpha").expect("jsonl handle");
         assert!(handle.path.ends_with("session-alpha.jsonl"));
 
-        let legacy_path = workspace.join(".claw/sessions/legacy.json");
+        let legacy_path = workspace.join(".forge/sessions/legacy.json");
         std::fs::create_dir_all(
             legacy_path
                 .parent()
@@ -6207,7 +6207,7 @@ UU conflicted.rs",
     fn resume_usage_mentions_latest_shortcut() {
         let usage = render_resume_usage();
         assert!(usage.contains("/resume <session-path|session-id|latest>"));
-        assert!(usage.contains(".claw/sessions/<session-id>.jsonl"));
+        assert!(usage.contains(".forge/sessions/<session-id>.jsonl"));
         assert!(usage.contains("/session list"));
     }
 
@@ -6221,7 +6221,7 @@ UU conflicted.rs",
             .duration_since(std::time::UNIX_EPOCH)
             .expect("system time should be after epoch")
             .as_nanos();
-        std::env::temp_dir().join(format!("claw-cli-{label}-{nanos}"))
+        std::env::temp_dir().join(format!("forge-cli-{label}-{nanos}"))
     }
 
     #[test]
@@ -6421,8 +6421,8 @@ UU conflicted.rs",
             "reading src/main.rs"
         );
         assert!(
-            describe_tool_progress("bash", r#"{"command":"cargo test -p rusty-claude-cli"}"#)
-                .contains("cargo test -p rusty-claude-cli")
+            describe_tool_progress("bash", r#"{"command":"cargo test -p forge-cli"}"#)
+                .contains("cargo test -p forge-cli")
         );
         assert_eq!(
             describe_tool_progress("grep_search", r#"{"pattern":"ultraplan","path":"rust"}"#),

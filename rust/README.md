@@ -1,6 +1,6 @@
-# 🦞 Claw Code — Rust Implementation
+# Forge CLI — Rust Implementation
 
-A high-performance Rust rewrite of the Claw Code CLI agent harness. Built for speed, safety, and native tool execution.
+A high-performance Rust rewrite of the Forge CLI agent harness. Built for speed, safety, and native tool execution.
 
 ## Quick Start
 
@@ -10,13 +10,13 @@ cd rust/
 cargo build --release
 
 # Run interactive REPL
-./target/release/claw
+./target/release/forge
 
 # One-shot prompt
-./target/release/claw prompt "explain this codebase"
+./target/release/forge prompt "explain this codebase"
 
 # With specific model
-./target/release/claw --model sonnet prompt "fix the bug in main.rs"
+./target/release/forge --model sonnet prompt "fix the bug in main.rs"
 ```
 
 ## Configuration
@@ -32,7 +32,7 @@ export ANTHROPIC_BASE_URL="https://your-proxy.com"
 Or authenticate via OAuth:
 
 ```bash
-claw login
+forge login
 ```
 
 ## Features
@@ -47,8 +47,8 @@ claw login
 | Sub-agent orchestration | ✅ |
 | Todo tracking | ✅ |
 | Notebook editing | ✅ |
-| CLAUDE.md / project memory | ✅ |
-| Config file hierarchy (.claude.json) | ✅ |
+| FORGE.md / project memory | ✅ |
+| Config file hierarchy (.forge.json) | ✅ |
 | Permission system | ✅ |
 | MCP server lifecycle | ✅ |
 | Session persistence + resume | ✅ |
@@ -75,7 +75,7 @@ Short names resolve to the latest model versions:
 ## CLI Flags
 
 ```
-claw [OPTIONS] [COMMAND]
+forge [OPTIONS] [COMMAND]
 
 Options:
   --model MODEL                    Set the model (alias or full name)
@@ -108,7 +108,7 @@ Tab completion now expands not just slash command names, but also common workflo
 | `/model [name]` | Show or switch model |
 | `/permissions` | Show or switch permission mode |
 | `/config [section]` | Show config (env, hooks, model) |
-| `/memory` | Show CLAUDE.md contents |
+| `/memory` | Show FORGE.md contents |
 | `/diff` | Show git diff |
 | `/export [path]` | Export conversation |
 | `/session [id]` | Resume a previous session |
@@ -125,7 +125,7 @@ rust/
     ├── commands/           # Shared slash-command registry
     ├── compat-harness/     # TS manifest extraction harness
     ├── runtime/            # Session, config, permissions, MCP, prompts
-    ├── rusty-claude-cli/   # Main CLI binary (`claw`)
+    ├── forge-cli/          # Main CLI binary (`forge`)
     └── tools/              # Built-in tool implementations
 ```
 
@@ -135,14 +135,14 @@ rust/
 - **commands** — Slash command definitions and help text generation
 - **compat-harness** — Extracts tool/prompt manifests from upstream TS source
 - **runtime** — `ConversationRuntime` agentic loop, `ConfigLoader` hierarchy, `Session` persistence, permission policy, MCP client, system prompt assembly, usage tracking
-- **rusty-claude-cli** — REPL, one-shot prompt, streaming display, tool call rendering, CLI argument parsing
+- **forge-cli** — REPL, one-shot prompt, streaming display, tool call rendering, CLI argument parsing
 - **tools** — Tool specs + execution: Bash, ReadFile, WriteFile, EditFile, GlobSearch, GrepSearch, WebSearch, WebFetch, Agent, TodoWrite, NotebookEdit, Skill, ToolSearch, REPL runtimes
 
 ## Stats
 
 - **~20K lines** of Rust
 - **6 crates** in workspace
-- **Binary name:** `claw`
+- **Binary name:** `forge`
 - **Default model:** `claude-opus-4-6`
 - **Default permissions:** `danger-full-access`
 

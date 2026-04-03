@@ -3,7 +3,7 @@
 Date: 2026-04-01
 
 Scope compared:
-- Upstream TypeScript: `/home/bellman/Workspace/claude-code/src/`
+- Upstream TypeScript: `/home/bellman/Workspace/forge/src/`
 - Rust port: `rust/crates/`
 
 Method:
@@ -18,7 +18,7 @@ The Rust port has a solid core for:
 - session/runtime state
 - Anthropic API/OAuth plumbing
 - a compact MVP tool registry
-- CLAUDE.md discovery
+- FORGE.md discovery
 - MCP config parsing/bootstrap primitives
 
 But it is still materially behind the TypeScript implementation in six major areas:
@@ -33,9 +33,9 @@ But it is still materially behind the TypeScript implementation in six major are
 ## Critical bug status on this branch
 
 Targeted critical items requested by the user:
-- **Prompt mode tools enabled**: fixed in `rust/crates/rusty-claude-cli/src/main.rs:75-82`
-- **Default permission mode = danger-full-access**: fixed in `rust/crates/rusty-claude-cli/src/args.rs:12-16`, `rust/crates/rusty-claude-cli/src/main.rs:348-353`, and starter config `rust/crates/rusty-claude-cli/src/init.rs:4-9`
-- **Tool input `{}` prefix bug**: fixed/guarded in streaming vs non-stream paths at `rust/crates/rusty-claude-cli/src/main.rs:2211-2256`
+- **Prompt mode tools enabled**: fixed in `rust/crates/forge-cli/src/main.rs:75-82`
+- **Default permission mode = danger-full-access**: fixed in `rust/crates/forge-cli/src/args.rs:12-16`, `rust/crates/forge-cli/src/main.rs:348-353`, and starter config `rust/crates/forge-cli/src/init.rs:4-9`
+- **Tool input `{}` prefix bug**: fixed/guarded in streaming vs non-stream paths at `rust/crates/forge-cli/src/main.rs:2211-2256`
 - **Unlimited max_iterations**: already present at `rust/crates/runtime/src/conversation.rs:143-148` with `usize::MAX` initialization at `rust/crates/runtime/src/conversation.rs:119`
 
 Build/test/manual verification is tracked separately below and must pass before the branch is considered done.
@@ -85,7 +85,7 @@ Build/test/manual verification is tracked separately below and must pass before 
 ### Rust currently has
 - Hook data is **loaded/merged from config** and visible in reports:
   - `rust/crates/runtime/src/config.rs:786-797,829-838`
-  - `rust/crates/rusty-claude-cli/src/main.rs:1665-1669`
+  - `rust/crates/forge-cli/src/main.rs:1665-1669`
 - The system prompt acknowledges user-configured hooks:
   - `rust/crates/runtime/src/prompt.rs:452-459`
 
@@ -110,11 +110,11 @@ Build/test/manual verification is tracked separately below and must pass before 
 
 ### Rust currently has
 - I did **not** find a dedicated plugin crate/module/handler under `rust/crates/`.
-- The Rust crate layout is only `api`, `commands`, `compat-harness`, `runtime`, `rusty-claude-cli`, and `tools`.
+- The Rust crate layout is only `api`, `commands`, `compat-harness`, `runtime`, `forge-cli`, and `tools`.
 
 ### Missing or broken in Rust
 - **Plugin loading/install/update/validation is missing.**
-- **No plugin CLI surface found** comparable to `claude plugin ...`.
+- **No plugin CLI surface found** comparable to `forge plugin ...`.
 - **No plugin runtime refresh/reconciliation layer found**.
 - This is one of the largest parity gaps.
 
@@ -134,7 +134,7 @@ Build/test/manual verification is tracked separately below and must pass before 
 - A `Skill` tool that loads local `SKILL.md` files directly:
   - `rust/crates/tools/src/lib.rs:1244-1255`
   - `rust/crates/tools/src/lib.rs:1288-1323`
-- CLAUDE.md / instruction discovery exists in runtime prompt loading:
+- FORGE.md / instruction discovery exists in runtime prompt loading:
   - `rust/crates/runtime/src/prompt.rs:203-208`
 
 ### Missing or broken in Rust
@@ -161,7 +161,7 @@ Build/test/manual verification is tracked separately below and must pass before 
   - `src/cli/transports/WorkerStateUploader.ts`
 
 ### Rust currently has
-- Minimal top-level subcommands in `rust/crates/rusty-claude-cli/src/args.rs:29-39` and `rust/crates/rusty-claude-cli/src/main.rs:67-90,242-261`.
+- Minimal top-level subcommands in `rust/crates/forge-cli/src/args.rs:29-39` and `rust/crates/forge-cli/src/main.rs:67-90,242-261`.
 - Slash command surface is 15 commands total in `rust/crates/commands/src/lib.rs:41-166,389`.
 
 ### Missing or broken in Rust
@@ -184,8 +184,8 @@ Build/test/manual verification is tracked separately below and must pass before 
 
 ### Rust currently has
 - A straightforward agentic loop in `rust/crates/runtime/src/conversation.rs:130-214`.
-- Streaming API adaptation in `rust/crates/rusty-claude-cli/src/main.rs:1998-2058`.
-- Tool-use block assembly and non-stream fallback handling in `rust/crates/rusty-claude-cli/src/main.rs:2211-2256`.
+- Streaming API adaptation in `rust/crates/forge-cli/src/main.rs:1998-2058`.
+- Tool-use block assembly and non-stream fallback handling in `rust/crates/forge-cli/src/main.rs:2211-2256`.
 
 ### Missing or broken in Rust
 - **No TS-style streaming tool executor** with sibling cancellation / fallback discard semantics.
@@ -202,7 +202,7 @@ Build/test/manual verification is tracked separately below and must pass before 
 ### Upstream TS has
 - Very broad service layer, including API, analytics, compact/session memory, prompt suggestions, plugin services, MCP service helpers, LSP management, policy limits, team memory sync, notifier/tips, etc.
 - Evidence:
-  - `src/services/api/client.ts`, `src/services/api/claude.ts`, `src/services/api/withRetry.ts`
+  - `src/services/api/client.ts`, `src/services/api/forge.ts`, `src/services/api/withRetry.ts`
   - `src/services/oauth/client.ts`, `src/services/oauth/index.ts`
   - `src/services/mcp/*`
   - `src/services/plugins/*`
