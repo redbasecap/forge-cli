@@ -102,6 +102,7 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser('forge-score', help='show the current experiment score history')
     subparsers.add_parser('forge-experiment-log', help='print the raw results.tsv experiment log')
     subparsers.add_parser('forge-sandbox-status', help='check MicroVM sandbox availability and configuration')
+    subparsers.add_parser('forge-auth-status', help='show current authentication source and token status')
 
     init_tasks_parser = subparsers.add_parser('forge-init-tasks', help='scaffold a tasks/ directory with an example task')
     init_tasks_parser.add_argument('--force', action='store_true', help='overwrite existing example task')
@@ -295,6 +296,21 @@ def main(argv: list[str] | None = None) -> int:
             print(f'\nmicrovm found but no kernel configured.')
             print(f'  Place a RISC-V Linux kernel at ~/.forge/vm/Image')
             print(f'  Or set FORGE_VM_KERNEL=/path/to/Image')
+        return 0
+    if args.command == 'forge-auth-status':
+        from .self_improve import ForgeAuth
+        try:
+            auth = ForgeAuth.load()
+            info = auth.status_dict()
+            print('Forge Auth Status')
+            print(f'  Source:       {info["source"]}')
+            print(f'  Token:        {info["token"]}')
+            print(f'  Plan:         {info["plan"]}')
+            print(f'  Expires:      {info["expires"]}')
+            print(f'  Refresh:      {"yes" if info["has_refresh"] else "no"}')
+        except RuntimeError as e:
+            print(f'Auth Error: {e}')
+            return 1
         return 0
     if args.command == 'forge-init-tasks':
         import shutil

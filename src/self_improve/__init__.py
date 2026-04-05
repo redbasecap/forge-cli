@@ -1,6 +1,7 @@
 """Forge self-improvement engine — iterative refinement through experimentation."""
 
 from .engine import ExperimentLoop
+from .auth import ForgeAuth
 from .sandbox import MicroVMSandbox
 from .scorer import TaskScorer, ScoreHistory
 from .task_runner import TaskRunner

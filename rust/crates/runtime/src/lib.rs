@@ -6,6 +6,7 @@ mod conversation;
 mod file_ops;
 mod hooks;
 mod json;
+pub mod keychain;
 mod mcp;
 mod mcp_client;
 mod mcp_stdio;
