@@ -170,7 +170,7 @@ fi
 forge/
 ├── rust/                    # Rust workspace
 │   └── crates/
-│       ├── forge-cli/       # CLI binary (forge)
+│       ├── rusty-claude-cli/ # CLI binary (forge)
 │       ├── runtime/         # Session, tools, permissions, hooks
 │       ├── api/             # LLM provider clients (Anthropic, OpenAI-compat)
 │       ├── tools/           # Tool definitions + execution

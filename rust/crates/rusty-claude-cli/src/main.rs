@@ -6733,6 +6733,7 @@ UU conflicted.rs",
     }
 
     #[test]
+    #[ignore = "requires ANTHROPIC_API_KEY"]
     fn build_runtime_runs_plugin_lifecycle_init_and_shutdown() {
         let config_home = temp_dir();
         let workspace = temp_dir();
